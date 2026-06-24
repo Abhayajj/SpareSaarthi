@@ -2,14 +2,16 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Since the backend is running locally and we might be testing on web or emulator,
-// localhost works for web/iOS emulator. For Android emulator, use 10.0.2.2.
-// For physical devices, use the local IPv4 address (e.g. 192.168.1.X).
-const BASE_URL = Platform.select({
+const DEV_URL = Platform.select({
   android: 'http://10.62.41.76:5000/api',
   ios: 'http://10.62.41.76:5000/api',
   default: 'http://localhost:5000/api',
 });
+
+const PROD_URL = 'https://sparesaarthi-backend.onrender.com/api';
+
+const isProd = !__DEV__ || (Platform.OS === 'web' && window.location.hostname !== 'localhost');
+const BASE_URL = isProd ? PROD_URL : DEV_URL;
 
 // In-memory token store — avoids async issues in axios interceptors on web.
 // This is set immediately on login/app-load so the interceptor can read it synchronously.
