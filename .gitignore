@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# backend env & node_modules
+backend/.env
+backend/node_modules/

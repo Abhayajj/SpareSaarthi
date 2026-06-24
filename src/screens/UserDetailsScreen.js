@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 
 export default function UserDetailsScreen({ navigation }) {

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../api/apiConfig';
+import { Platform } from 'react-native';
+import api, { setAuthToken, clearAuthToken } from '../api/apiConfig';
 
 export const AuthContext = createContext();
 
@@ -15,6 +16,7 @@ export const AuthProvider = ({ children }) => {
       const userData = response.data;
       setUserInfo(userData);
       setUserToken(userData.token);
+      setAuthToken(userData.token); // ← sync in-memory token
       await AsyncStorage.setItem('userInfo', JSON.stringify(userData));
       await AsyncStorage.setItem('userToken', userData.token);
     } catch (error) {
@@ -26,15 +28,12 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password, businessName, address) => {
     try {
       const response = await api.post('/auth/register', {
-        name,
-        email,
-        password,
-        businessName,
-        address
+        name, email, password, businessName, address
       });
       const userData = response.data;
       setUserInfo(userData);
       setUserToken(userData.token);
+      setAuthToken(userData.token); // ← sync in-memory token
       await AsyncStorage.setItem('userInfo', JSON.stringify(userData));
       await AsyncStorage.setItem('userToken', userData.token);
     } catch (error) {
@@ -47,9 +46,25 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setUserToken(null);
     setUserInfo(null);
+    clearAuthToken(); // ← clear in-memory token
+    
+    // Synchronously clear localStorage on Web to prevent any race condition before page reload
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('userToken');
+      } catch (err) {
+        console.error('Error clearing localStorage:', err);
+      }
+    }
+
     await AsyncStorage.removeItem('userInfo');
     await AsyncStorage.removeItem('userToken');
     setIsLoading(false);
+    
+    if (Platform.OS === 'web') {
+      window.location.href = '/';
+    }
   };
 
   const isLoggedIn = async () => {
@@ -59,6 +74,7 @@ export const AuthProvider = ({ children }) => {
       let userToken = await AsyncStorage.getItem('userToken');
       
       if (userInfo && userToken) {
+        setAuthToken(userToken); // ← restore in-memory token immediately
         // Optionally fetch latest profile to get up to date coins
         try {
           const profileRes = await api.get('/auth/profile');
@@ -78,12 +94,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshProfile = async () => {
+    try {
+      const profileRes = await api.get('/auth/profile');
+      setUserInfo(prev => {
+        const updated = { ...prev, ...profileRes.data };
+        AsyncStorage.setItem('userInfo', JSON.stringify(updated));
+        return updated;
+      });
+    } catch (e) {
+      console.log('Could not refresh profile', e);
+    }
+  };
+
   useEffect(() => {
     isLoggedIn();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ login, register, logout, isLoading, userToken, userInfo }}>
+    <AuthContext.Provider value={{ login, register, logout, isLoading, userToken, userInfo, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

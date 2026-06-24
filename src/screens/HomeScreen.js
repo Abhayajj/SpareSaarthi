@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { Search, User, Zap } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Image, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search, User, Zap, Tag, Bell } from 'lucide-react-native';
 import api from '../api/apiConfig';
 import { CartContext } from '../context/CartContext';
+import { AuthContext } from '../context/AuthContext';
 
 const BRANDS = [
   { id: 'hero', name: 'Hero', color: '#ff0000' },
@@ -13,45 +15,94 @@ const BRANDS = [
 
 export default function HomeScreen({ navigation }) {
   const [hotDeals, setHotDeals] = useState([]);
+  const [offers, setOffers] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const { addToCart } = useContext(CartContext);
+  const { userInfo } = useContext(AuthContext);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
   const handleAddToCart = (deal) => {
     addToCart(deal);
-    Alert.alert('Added to Cart', `${deal.name} has been added to your cart.`, [
-      { text: 'Continue Shopping' },
-      { text: 'Go to Cart', onPress: () => navigation.navigate('Cart') }
-    ]);
+    if (Platform.OS === 'web') {
+      const goToCart = window.confirm(`${deal.name} has been added to your cart. Go to Cart?`);
+      if (goToCart) {
+        navigation.navigate('Cart');
+      }
+    } else {
+      Alert.alert('Added to Cart', `${deal.name} has been added to your cart.`, [
+        { text: 'Continue Shopping' },
+        { text: 'Go to Cart', onPress: () => navigation.navigate('Cart') }
+      ]);
+    }
   };
 
   useEffect(() => {
-    const fetchHotDeals = async () => {
+    const fetchHomeData = async () => {
       try {
-        const { data } = await api.get('/products?isHotDeal=true');
-        setHotDeals(data);
+        const [dealsRes, offersRes, ordersRes] = await Promise.all([
+          api.get('/products?isHotDeal=true'),
+          api.get('/offers'),
+          api.get('/orders/myorders'),
+        ]);
+        setHotDeals(dealsRes.data);
+        setOffers(offersRes.data);
+        setOrders(ordersRes.data);
       } catch (error) {
-        console.error('Error fetching hot deals', error);
+        console.error('Error fetching home data', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchHotDeals();
+    fetchHomeData();
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* Header */}
+        {/* ─── Header ─── */}
         <View style={styles.header}>
-          <View style={styles.profileSection}>
-            <TouchableOpacity 
-              style={styles.profileIconContainer} 
+          <View style={styles.headerTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.greetingText}>{greeting()}, 👋</Text>
+              <Text style={styles.headerTitle}>
+                {userInfo?.businessName || userInfo?.name || 'SpareSaarthi'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.profileIconContainer}
               onPress={() => navigation.navigate('Profile')}
             >
-              <User color="#fff" size={24} />
+              <Text style={styles.profileInitials}>
+                {(userInfo?.name || 'U').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()}
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>SpareSaarthi</Text>
+          </View>
+
+          {/* Mechanic Stats Strip */}
+          <View style={styles.statsStrip}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{orders.length}</Text>
+              <Text style={styles.statLabel}>Orders</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: '#ea580c' }]}>🪙 {userInfo?.coins || 0}</Text>
+              <Text style={styles.statLabel}>Coins</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>₹{orders.reduce((s, o) => s + o.totalAmount, 0).toLocaleString('en-IN')}</Text>
+              <Text style={styles.statLabel}>Total Spent</Text>
+            </View>
           </View>
         </View>
 
@@ -62,6 +113,15 @@ export default function HomeScreen({ navigation }) {
             style={styles.searchInput}
             placeholder="Search with Part Name"
             placeholderTextColor="gray"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={() => {
+              if (searchQuery.trim()) {
+                navigation.navigate('Products', { initialSearch: searchQuery });
+                setSearchQuery('');
+              }
+            }}
+            returnKeyType="search"
           />
         </View>
 
@@ -70,14 +130,52 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Bike Brands</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandsScroll}>
             {BRANDS.map(brand => (
-              <TouchableOpacity key={brand.id} style={styles.brandCard}>
+              <TouchableOpacity 
+                key={brand.id} 
+                style={styles.brandCard}
+                onPress={() => navigation.navigate('Products', { initialBrand: brand.name })}
+              >
                 <Text style={[styles.brandText, { color: brand.color }]}>{brand.name}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
-        {/* Banner */}
+        {/* ─── Active Offers Strip ─── */}
+        {offers.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Special Offers</Text>
+              <Tag color="#7c3aed" size={20} />
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {offers.map(offer => (
+                <View
+                  key={offer._id}
+                  style={[styles.offerCard, { backgroundColor: offer.bgColor || '#ea580c' }]}
+                >
+                  <Text style={styles.offerBadge}>{offer.badgeText}</Text>
+                  <Text style={styles.offerTitle}>{offer.title}</Text>
+                  {offer.discountPercent > 0 && (
+                    <Text style={styles.offerDiscount}>{offer.discountPercent}% OFF</Text>
+                  )}
+                  <Text style={styles.offerDesc} numberOfLines={2}>{offer.description}</Text>
+                  <View style={styles.offerCategoryChip}>
+                    <Text style={styles.offerCategoryText}>📦 {offer.applicableCategory}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.offerShopBtn}
+                    onPress={() => navigation.navigate('Products')}
+                  >
+                    <Text style={styles.offerShopBtnText}>Shop Now →</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ─── Banner ─── */}
         <View style={styles.bannerContainer}>
           <View style={styles.banner}>
             <Text style={styles.bannerText}>SPARE PARTS SALE</Text>
@@ -99,7 +197,13 @@ export default function HomeScreen({ navigation }) {
                 <View key={deal._id} style={styles.dealCard}>
                   <Text style={styles.dealTitle} numberOfLines={1}>{deal.name}</Text>
                   <View style={styles.dealImageContainer}>
-                     <Image source={{ uri: deal.image }} style={styles.dealImage} />
+                     <Image
+                       source={{ uri: deal.image }}
+                       style={styles.dealImage}
+                       onError={(e) => {
+                         e.target.src = `https://placehold.co/150x150/e2e8f0/475569/png?text=${encodeURIComponent(deal.brand || 'Part')}`;
+                       }}
+                     />
                   </View>
                   <View style={styles.dealInfo}>
                     <Text style={styles.discountText}>{deal.discount || 'Special'}</Text>
@@ -136,31 +240,71 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   header: {
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    marginBottom: 16,
+  },
+  greetingText: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+    marginBottom: 3,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  profileIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#ea580c',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitials: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  statsStrip: {
+    flexDirection: 'row',
+    backgroundColor: '#1e293b',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: '#334155',
+    marginHorizontal: 8,
   },
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  profileIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ea580c', // orange-600
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#ea580c', // brand color
-    letterSpacing: 0.5,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -322,5 +466,66 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
+  },
+
+  // ─── Offer Cards ───
+  offerCard: {
+    width: 260,
+    borderRadius: 16,
+    padding: 18,
+    marginRight: 14,
+    minHeight: 170,
+    justifyContent: 'space-between',
+  },
+  offerBadge: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 10,
+    fontWeight: '800',
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  offerTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  offerDiscount: {
+    color: '#fff',
+    fontSize: 30,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  offerDesc: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  offerCategoryChip: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  offerCategoryText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  offerShopBtn: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 8,
+    paddingVertical: 9,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  offerShopBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });

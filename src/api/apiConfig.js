@@ -1,25 +1,64 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // Since the backend is running locally and we might be testing on web or emulator,
 // localhost works for web/iOS emulator. For Android emulator, use 10.0.2.2.
 // For physical devices, use the local IPv4 address (e.g. 192.168.1.X).
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = Platform.select({
+  android: 'http://10.62.41.76:5000/api',
+  ios: 'http://10.62.41.76:5000/api',
+  default: 'http://localhost:5000/api',
+});
+
+// In-memory token store — avoids async issues in axios interceptors on web.
+// This is set immediately on login/app-load so the interceptor can read it synchronously.
+let _authToken = null;
+
+export const setAuthToken = (token) => {
+  _authToken = token;
+};
+
+export const clearAuthToken = () => {
+  _authToken = null;
+};
+
+// On app boot, restore token from AsyncStorage into memory
+AsyncStorage.getItem('userToken').then((token) => {
+  if (token) _authToken = token;
+});
 
 const api = axios.create({
   baseURL: BASE_URL,
 });
 
-// Interceptor to add the token to requests
+// Synchronous interceptor — reads from in-memory token (always available)
 api.interceptors.request.use(
-  async (config) => {
-    const token = await AsyncStorage.getItem('userToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  (config) => {
+    if (_authToken) {
+      config.headers.Authorization = `Bearer ${_authToken}`;
     }
     return config;
   },
-  (error) => {
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle token expiration/invalid tokens (401)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response && error.response.status === 401) {
+      try {
+        await AsyncStorage.removeItem('userInfo');
+        await AsyncStorage.removeItem('userToken');
+        clearAuthToken();
+        if (Platform.OS === 'web') {
+          window.location.reload();
+        }
+      } catch (e) {
+        console.error('Error clearing token on 401:', e);
+      }
+    }
     return Promise.reject(error);
   }
 );

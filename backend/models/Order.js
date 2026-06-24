@@ -36,6 +36,14 @@ const orderSchema = new mongoose.Schema({
   coinsRedeemed: {
     type: Number,
     default: 0,
+  },
+  deliveryPartner: {
+    type: String,
+    default: '',
+  },
+  trackingNumber: {
+    type: String,
+    default: '',
   }
 }, { timestamps: true });
 

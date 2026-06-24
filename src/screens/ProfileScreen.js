@@ -1,188 +1,289 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, Share, Linking, Alert } from 'react-native';
-import { Bell, Smile, UserPlus, PhoneCall, FileText, LogOut } from 'lucide-react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, Share, Linking, Alert, Platform
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Bell, User, Shield, UserPlus, PhoneCall,
+  FileText, LogOut, ChevronRight, Settings, Star
+} from 'lucide-react-native';
 import { AuthContext } from '../context/AuthContext';
 
-const MENU_ITEMS = [
-  { id: '1', title: 'Notifications', icon: Bell, action: 'navigate', target: 'Notifications' },
-  { id: '2', title: 'Your Details', icon: Smile, action: 'navigate', target: 'UserDetails' },
-  { id: 'divider', isDivider: true },
-  { id: '3', title: 'Invite & Earn', icon: UserPlus, badge: '100 coins', action: 'share' },
-  { id: '4', title: 'Call Customer Care', icon: PhoneCall, action: 'call' },
-  { id: '5', title: 'Privacy Policy', icon: FileText, action: 'navigate', target: 'PrivacyPolicy' },
-];
+const TIER_INFO = (coins) => {
+  if (coins >= 5000) return { name: 'Gold', color: '#d97706', bg: '#fef3c7', icon: '🥇' };
+  if (coins >= 1000) return { name: 'Silver', color: '#64748b', bg: '#f1f5f9', icon: '🥈' };
+  return { name: 'Bronze', color: '#92400e', bg: '#fef3c7', icon: '🥉' };
+};
 
 export default function ProfileScreen({ navigation }) {
   const { userInfo, logout } = useContext(AuthContext);
+  const coins = userInfo?.coins || 0;
+  const tier = TIER_INFO(coins);
+  const initials = (userInfo?.name || 'U')
+    .split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
-  const handleMenuPress = async (item) => {
-    if (item.action === 'navigate') {
-      navigation.navigate(item.target);
-    } else if (item.action === 'share') {
-      try {
-        await Share.share({
-          message: 'Join SpareSaarthi today! Use my invite code to get 100 bonus coins on your first order. Download the app now.',
-        });
-      } catch (error) {
-        Alert.alert('Error', 'Could not share the invite link.');
-      }
-    } else if (item.action === 'call') {
-      const phoneNumber = 'tel:+916387244265';
-      Linking.canOpenURL(phoneNumber).then(supported => {
-        if (!supported) {
-          Alert.alert('Phone Call Not Supported', 'Please dial +91 6387244265 manually on your phone.');
-        } else {
-          return Linking.openURL(phoneNumber);
-        }
-      }).catch(err => console.error('An error occurred', err));
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Join SpareSaarthi — India's #1 B2B auto parts platform for mechanics! Get 100 bonus coins on your first order. Register now at sparesaarthi.com`,
+      });
+    } catch {
+      Alert.alert('Error', 'Could not open share sheet.');
     }
   };
 
+  const handleCall = () => {
+    const num = 'tel:+916387244265';
+    Linking.canOpenURL(num).then(ok => {
+      if (ok) Linking.openURL(num);
+      else Alert.alert('Support', 'Call us at +91 6387244265');
+    });
+  };
+
+  const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      const confirmLogout = window.confirm('Are you sure you want to logout?');
+      if (confirmLogout) {
+        logout();
+      }
+    } else {
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to logout?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Logout', style: 'destructive', onPress: logout },
+        ]
+      );
+    }
+  };
+
+  const sections = [
+    {
+      title: 'Account',
+      items: [
+        { icon: User, label: 'Your Details', sub: 'Name, email, address', onPress: () => navigation.navigate('UserDetails') },
+        { icon: Bell, label: 'Notifications', sub: 'Order & offer alerts', onPress: () => navigation.navigate('Notifications') },
+        ...(userInfo?.role === 'admin' ? [
+          { icon: Shield, label: 'Admin Control Center', sub: 'Manage products, orders & offers', onPress: () => navigation.navigate('AdminPanel'), highlight: true }
+        ] : []),
+      ],
+    },
+    {
+      title: 'Rewards',
+      items: [
+        {
+          icon: Star, label: 'Invite & Earn',
+          sub: 'Earn 100 coins per referral',
+          badge: '100 🪙', onPress: handleShare,
+        },
+      ],
+    },
+    {
+      title: 'Support',
+      items: [
+        { icon: PhoneCall, label: 'Call Customer Care', sub: '+91 6387244265', onPress: handleCall },
+        { icon: FileText, label: 'Privacy Policy', sub: 'Data & privacy terms', onPress: () => navigation.navigate('PrivacyPolicy') },
+      ],
+    },
+  ];
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
-        {/* Profile Header */}
-        <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <Image 
-              source={{ uri: 'https://via.placeholder.com/150/e2e8f0/0f172a?text=Avatar' }} 
-              style={styles.avatar}
-            />
+    <SafeAreaView style={s.root}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+
+        {/* Profile Hero */}
+        <View style={s.hero}>
+          <View style={s.heroBg} />
+          <View style={s.avatar}>
+            <Text style={s.avatarText}>{initials}</Text>
           </View>
-          <Text style={styles.userName}>{userInfo?.name || 'User'}</Text>
-          <Text style={styles.userBusiness}>{userInfo?.businessName}</Text>
+          <Text style={s.userName}>{userInfo?.name || 'Welcome!'}</Text>
+          <Text style={s.userBusiness}>{userInfo?.businessName || ''}</Text>
+          <Text style={s.userAddress} numberOfLines={1}>{userInfo?.address || ''}</Text>
+          {userInfo?.role === 'admin' && (
+            <View style={s.adminBadge}>
+              <Shield color="#fff" size={12} />
+              <Text style={s.adminBadgeText}>ADMINISTRATOR</Text>
+            </View>
+          )}
         </View>
 
-        {/* Menu Items */}
-        <View style={styles.menuContainer}>
-          {MENU_ITEMS.map((item, index) => {
-            if (item.isDivider) {
-              return <View key={`div-${index}`} style={styles.divider} />;
-            }
-            const Icon = item.icon;
-            return (
-              <TouchableOpacity 
-                key={item.id} 
-                style={styles.menuItem}
-                onPress={() => handleMenuPress(item)}
-              >
-                <View style={styles.menuItemLeft}>
-                  <Icon color="#475569" size={24} style={styles.menuIcon} />
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                </View>
-                {item.badge && (
-                  <View style={styles.badgeContainer}>
-                    <Text style={styles.badgeText}>🪙 {item.badge}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+        {/* Stats Row */}
+        <View style={s.statsRow}>
+          <View style={s.statItem}>
+            <Text style={s.statValue}>{userInfo?.ordersCount || 0}</Text>
+            <Text style={s.statLabel}>Orders</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={[s.statValue, { color: '#ea580c' }]}>🪙 {coins}</Text>
+            <Text style={s.statLabel}>Coins</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={[s.statValue, { color: tier.color }]}>{tier.icon} {tier.name}</Text>
+            <Text style={s.statLabel}>Member Tier</Text>
+          </View>
         </View>
+
+        {/* Tier Progress */}
+        {userInfo?.role !== 'admin' && (
+          <View style={s.tierCard}>
+            <View style={s.tierRow}>
+              <Text style={[s.tierTitle, { color: tier.color }]}>{tier.icon} {tier.name} Member</Text>
+              <Text style={s.tierCoins}>{coins} coins</Text>
+            </View>
+            <View style={s.tierBar}>
+              <View style={[s.tierFill, {
+                width: `${Math.min((coins / 5000) * 100, 100)}%`,
+                backgroundColor: tier.color,
+              }]} />
+            </View>
+            <Text style={s.tierNext}>
+              {coins < 1000
+                ? `${1000 - coins} coins to Silver`
+                : coins < 5000
+                ? `${5000 - coins} coins to Gold`
+                : '🎉 Maximum tier reached!'}
+            </Text>
+          </View>
+        )}
+
+        {/* Menu Sections */}
+        {sections.map(section => (
+          <View key={section.title} style={s.section}>
+            <Text style={s.sectionTitle}>{section.title}</Text>
+            <View style={s.sectionCard}>
+              {section.items.map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[s.menuItem, idx < section.items.length - 1 && s.menuItemBorder, item.highlight && s.menuItemHighlight]}
+                    onPress={item.onPress}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[s.menuIconWrap, item.highlight && { backgroundColor: '#fff7ed' }]}>
+                      <Icon color={item.highlight ? '#ea580c' : '#475569'} size={20} />
+                    </View>
+                    <View style={s.menuText}>
+                      <Text style={[s.menuLabel, item.highlight && { color: '#ea580c' }]}>{item.label}</Text>
+                      <Text style={s.menuSub}>{item.sub}</Text>
+                    </View>
+                    {item.badge && (
+                      <View style={s.menuBadge}>
+                        <Text style={s.menuBadgeText}>{item.badge}</Text>
+                      </View>
+                    )}
+                    <ChevronRight color="#cbd5e1" size={18} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ))}
 
         {/* Logout */}
-        <View style={styles.logoutContainer}>
-          <TouchableOpacity style={styles.menuItem} onPress={logout}>
-            <View style={styles.menuItemLeft}>
-              <LogOut color="#475569" size={24} style={styles.menuIcon} />
-              <Text style={styles.menuTitle}>Logout</Text>
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.versionText}>App version 1.8.3</Text>
+        <View style={s.section}>
+          <View style={s.sectionCard}>
+            <TouchableOpacity style={s.menuItem} onPress={handleLogout} activeOpacity={0.7}>
+              <View style={[s.menuIconWrap, { backgroundColor: '#fef2f2' }]}>
+                <LogOut color="#ef4444" size={20} />
+              </View>
+              <View style={s.menuText}>
+                <Text style={[s.menuLabel, { color: '#ef4444' }]}>Logout</Text>
+                <Text style={s.menuSub}>Signed in as {userInfo?.email}</Text>
+              </View>
+              <ChevronRight color="#fca5a5" size={18} />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        <Text style={s.footer}>SpareSaarthi v2.0 · Made with ❤️ for India's Mechanics</Text>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  header: {
-    alignItems: 'center',
-    paddingTop: 40,
-    paddingBottom: 30,
-  },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#e2e8f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#f1f5f9' },
+
+  hero: { alignItems: 'center', paddingBottom: 30, paddingTop: 40, position: 'relative' },
+  heroBg: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 120,
+    backgroundColor: '#0f172a',
   },
   avatar: {
-    width: '100%',
-    height: '100%',
+    width: 90, height: 90, borderRadius: 45, backgroundColor: '#ea580c',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 4, borderColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
+    marginBottom: 14,
   },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#0f172a',
+  avatarText: { color: '#fff', fontSize: 28, fontWeight: '900' },
+  userName: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
+  userBusiness: { fontSize: 14, color: '#475569', fontWeight: '600', marginBottom: 2 },
+  userAddress: { fontSize: 12, color: '#94a3b8', maxWidth: 260, textAlign: 'center' },
+  adminBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#ea580c', paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, marginTop: 10,
   },
-  userBusiness: {
-    fontSize: 14,
-    color: '#64748b',
-    marginTop: 4,
+  adminBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 1 },
+
+  statsRow: {
+    flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16,
+    borderRadius: 16, padding: 16, marginBottom: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
   },
-  menuContainer: {
-    paddingHorizontal: 20,
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: { fontSize: 18, fontWeight: '900', color: '#0f172a' },
+  statLabel: { fontSize: 11, color: '#94a3b8', marginTop: 3, fontWeight: '500' },
+  statDivider: { width: 1, backgroundColor: '#e2e8f0', marginHorizontal: 8 },
+
+  tierCard: {
+    backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 14,
+    padding: 16, marginBottom: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 3, elevation: 2,
+  },
+  tierRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  tierTitle: { fontSize: 14, fontWeight: '800' },
+  tierCoins: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+  tierBar: { height: 6, backgroundColor: '#f1f5f9', borderRadius: 3, marginBottom: 8, overflow: 'hidden' },
+  tierFill: { height: '100%', borderRadius: 3 },
+  tierNext: { fontSize: 12, color: '#94a3b8', fontWeight: '500' },
+
+  section: { marginHorizontal: 16, marginBottom: 14 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#94a3b8', marginBottom: 8, paddingLeft: 4, letterSpacing: 0.5, textTransform: 'uppercase' },
+  sectionCard: {
+    backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 3, elevation: 2,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 18,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
+  menuItemHighlight: { backgroundColor: '#fff7ed' },
+  menuIconWrap: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center',
   },
-  menuIcon: {
-    marginRight: 15,
+  menuText: { flex: 1 },
+  menuLabel: { fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 2 },
+  menuSub: { fontSize: 12, color: '#94a3b8' },
+  menuBadge: {
+    backgroundColor: '#fff7ed', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: '#fed7aa',
   },
-  menuTitle: {
-    fontSize: 16,
-    color: '#334155',
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#cbd5e1',
-    borderStyle: 'dashed',
-    marginVertical: 10,
-  },
-  badgeContainer: {
-    backgroundColor: '#ffedd5', // orange-100
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  badgeText: {
-    color: '#ea580c', // orange-600
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  logoutContainer: {
-    marginTop: 40,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  versionText: {
-    color: '#94a3b8',
-    fontSize: 12,
-    marginTop: 10,
-    marginLeft: 40,
-  },
+  menuBadgeText: { fontSize: 12, color: '#ea580c', fontWeight: '700' },
+
+  footer: { textAlign: 'center', color: '#cbd5e1', fontSize: 12, padding: 24, paddingTop: 8 },
 });

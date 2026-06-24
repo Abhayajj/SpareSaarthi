@@ -18,6 +18,9 @@ import RegisterScreen from '../screens/RegisterScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import UserDetailsScreen from '../screens/UserDetailsScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import ProductsScreen from '../screens/ProductsScreen';
+import AdminPanelScreen from '../screens/AdminPanelScreen';
+import OrderSuccessScreen from '../screens/OrderSuccessScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -109,7 +112,10 @@ export default function AppNavigator() {
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={BottomTabs} />
+          <Stack.Screen name="Products" component={ProductsScreen} />
+          <Stack.Screen name="AdminPanel" component={AdminPanelScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} options={{ gestureEnabled: false }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="UserDetails" component={UserDetailsScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ presentation: 'modal' }} />

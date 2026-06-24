@@ -30,6 +30,7 @@ const registerUser = async (req, res) => {
         email: user.email,
         businessName: user.businessName,
         coins: user.coins,
+        role: user.role,
         token: generateToken(user._id),
       });
     } else {
@@ -56,6 +57,7 @@ const loginUser = async (req, res) => {
         email: user.email,
         businessName: user.businessName,
         coins: user.coins,
+        role: user.role,
         token: generateToken(user._id),
       });
     } else {
@@ -81,6 +83,7 @@ const getUserProfile = async (req, res) => {
         businessName: user.businessName,
         address: user.address,
         coins: user.coins,
+        role: user.role,
       });
     } else {
       res.status(404).json({ message: 'User not found' });

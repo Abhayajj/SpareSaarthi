@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../api/apiConfig';
 
-export default function CategoriesScreen() {
+export default function CategoriesScreen({ navigation }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +22,10 @@ export default function CategoriesScreen() {
   }, []);
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.categoryCard}>
+    <TouchableOpacity 
+      style={styles.categoryCard}
+      onPress={() => navigation.navigate('Products', { initialCategory: item._id })}
+    >
       <View style={styles.iconContainer}>
         <Text style={styles.icon}>{item.icon}</Text>
       </View>
