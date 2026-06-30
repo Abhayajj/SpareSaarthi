@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import api, { setAuthToken, clearAuthToken } from '../api/apiConfig';
+import api, { setAuthToken, clearAuthToken, setUnauthenticatedListener } from '../api/apiConfig';
 
 export const AuthContext = createContext();
 
@@ -108,7 +108,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    setUnauthenticatedListener(() => {
+      setUserToken(null);
+      setUserInfo(null);
+    });
     isLoggedIn();
+    return () => {
+      setUnauthenticatedListener(null);
+    };
   }, []);
 
   return (

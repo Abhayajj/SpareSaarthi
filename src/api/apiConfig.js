@@ -45,6 +45,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+let _unauthListener = null;
+
+export const setUnauthenticatedListener = (listener) => {
+  _unauthListener = listener;
+};
+
 // Response interceptor to handle token expiration/invalid tokens (401)
 api.interceptors.response.use(
   (response) => response,
@@ -54,6 +60,9 @@ api.interceptors.response.use(
         await AsyncStorage.removeItem('userInfo');
         await AsyncStorage.removeItem('userToken');
         clearAuthToken();
+        if (_unauthListener) {
+          _unauthListener();
+        }
         if (Platform.OS === 'web') {
           window.location.reload();
         }
