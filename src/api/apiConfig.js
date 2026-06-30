@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 const DEV_URL = Platform.select({
-  android: 'http://10.62.41.76:5000/api',
-  ios: 'http://10.62.41.76:5000/api',
+  android: 'http://172.19.34.76:5000/api',
+  ios: 'http://172.19.34.76:5000/api',
   default: 'http://localhost:5000/api',
 });
 
