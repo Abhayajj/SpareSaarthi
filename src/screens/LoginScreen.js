@@ -97,7 +97,7 @@ export default function LoginScreen({ navigation }) {
 
   const qrLoginUrl = Platform.OS === 'web'
     ? (typeof window !== 'undefined' ? `${window.location.origin}/?email=admin@sparesaarthi.com&password=adminpassword123` : 'http://localhost:8081/?email=admin@sparesaarthi.com&password=adminpassword123')
-    : 'http://10.62.41.76:8081/?email=admin@sparesaarthi.com&password=adminpassword123';
+    : 'http://172.19.34.76:8081/?email=admin@sparesaarthi.com&password=adminpassword123';
 
   return (
     <SafeAreaView style={s.root}>
