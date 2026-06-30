@@ -213,6 +213,15 @@ router.get('/seed-db', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+router.get('/debug-db', (req, res) => {
+  const uri = process.env.MONGO_URI || '';
+  const maskedUri = uri.replace(/:([^@]+)@/, ':******@');
+  res.json({
+    uri: maskedUri,
+    readyState: require('mongoose').connection.readyState
+  });
+});
 const {
   getProducts,
   getProductById,
