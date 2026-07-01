@@ -8,6 +8,10 @@ const registerUser = async (req, res) => {
   try {
     const { name, email, password, businessName, address, phone } = req.body;
 
+    if (!name || !email || !password || !businessName || !address || !phone) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
     const userExists = await User.findOne({ email });
 
     if (userExists) {
