@@ -1,8 +1,9 @@
 import React, { useContext } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, ActivityIndicator, Alert
+  ScrollView, ActivityIndicator, Alert, Platform
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShoppingCart, Plus, Minus, Trash2, ArrowLeft, ShoppingBag } from 'lucide-react-native';
 import { CartContext } from '../context/CartContext';
@@ -30,18 +31,41 @@ export default function CartScreen({ navigation }) {
     if (cartItems.length === 0) return;
     setLoading(true);
     try {
-      await api.post('/orders', {
+      const response = await api.post('/orders/checkout-session', {
         orderItems: cartItems.map(i => ({
           name: i.name, qty: i.quantity, price: i.price, product: i._id,
         })),
         totalAmount: payable,
         coinsRedeemed: coinsDiscount,
       });
-      await refreshProfile();
-      clearCart();
-      setRedeemCoins(false);
-      // Navigate to success screen
-      navigation.navigate('OrderSuccess');
+
+      const { id: sessionId, url: checkoutUrl, orderId } = response.data;
+
+      if (Platform.OS === 'web') {
+        window.location.href = checkoutUrl;
+      } else {
+        await WebBrowser.openBrowserAsync(checkoutUrl);
+        
+        // After they close the browser modal, confirm payment status on the backend
+        setLoading(true);
+        try {
+          await api.post(`/orders/${orderId}/confirm-payment`, {
+            session_id: sessionId
+          });
+          
+          await refreshProfile();
+          clearCart();
+          setRedeemCoins(false);
+          navigation.navigate('OrderSuccess');
+        } catch (confirmErr) {
+          console.error('Payment confirmation error:', confirmErr);
+          Alert.alert(
+            'Payment Verification',
+            'If you completed payment, your order will show as Confirmed shortly. Check the Orders tab.',
+            [{ text: 'OK', onPress: () => navigation.navigate('Orders') }]
+          );
+        }
+      }
     } catch (err) {
       console.error('Checkout error:', err);
       Alert.alert('Checkout Failed', err.response?.data?.message || 'Please try again.');

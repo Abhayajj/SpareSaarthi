@@ -10,6 +10,7 @@ export default function ProductsScreen({ route, navigation }) {
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(initialSearch || '');
   const [selectedCategory, setSelectedCategory] = useState(initialCategory || null);
@@ -25,13 +26,15 @@ export default function ProductsScreen({ route, navigation }) {
     const fetchInitialData = async () => {
       try {
         setLoading(true);
-        // Fetch categories for filter chips
-        const catRes = await api.get('/products/categories');
+        // Fetch categories and brands
+        const [catRes, prodRes, brandRes] = await Promise.all([
+          api.get('/products/categories'),
+          api.get('/products'),
+          api.get('/products/brands').catch(() => ({ data: [] })),
+        ]);
         setCategories(catRes.data);
-
-        // Fetch products
-        const prodRes = await api.get('/products');
         setProducts(prodRes.data);
+        setBrands(brandRes.data);
       } catch (error) {
         console.error('Error fetching products/categories:', error);
         Alert.alert('Error', 'Failed to load spare parts catalog.');
@@ -170,7 +173,7 @@ export default function ProductsScreen({ route, navigation }) {
           ))}
 
           {/* Brands */}
-          {BRANDS.map(brand => (
+          {(brands.length > 0 ? brands.map(b => b.name) : BRANDS).map(brand => (
             <TouchableOpacity 
               key={brand}
               style={[styles.filterChip, selectedBrand === brand && styles.activeChip]}

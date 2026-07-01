@@ -5,12 +5,17 @@ const {
   getMyOrders,
   getOrders,
   updateOrderStatus,
+  createCheckoutSession,
+  confirmPayment,
 } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/')
   .post(protect, createOrder)
   .get(protect, admin, getOrders);
+
+router.post('/checkout-session', protect, createCheckoutSession);
+router.post('/:id/confirm-payment', protect, confirmPayment);
 
 router.route('/myorders')
   .get(protect, getMyOrders);

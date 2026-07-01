@@ -93,8 +93,29 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+// @desc    Update push token
+// @route   PUT /api/auth/push-token
+// @access  Private
+const updatePushToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (user) {
+      user.pushToken = token || '';
+      await user.save();
+      res.json({ message: 'Push token updated successfully' });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getUserProfile,
+  updatePushToken,
 };

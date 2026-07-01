@@ -17,6 +17,7 @@ export default function HomeScreen({ navigation }) {
   const [hotDeals, setHotDeals] = useState([]);
   const [offers, setOffers] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const { addToCart } = useContext(CartContext);
@@ -47,14 +48,16 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
-        const [dealsRes, offersRes, ordersRes] = await Promise.all([
+        const [dealsRes, offersRes, ordersRes, brandsRes] = await Promise.all([
           api.get('/products?isHotDeal=true'),
           api.get('/offers'),
           api.get('/orders/myorders'),
+          api.get('/products/brands').catch(() => ({ data: [] })),
         ]);
         setHotDeals(dealsRes.data);
         setOffers(offersRes.data);
         setOrders(ordersRes.data);
+        setBrands(brandsRes.data);
       } catch (error) {
         console.error('Error fetching home data', error);
       } finally {
@@ -129,13 +132,15 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Bike Brands</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandsScroll}>
-            {BRANDS.map(brand => (
+            {(brands.length > 0 ? brands : BRANDS).map(brand => (
               <TouchableOpacity 
-                key={brand.id} 
+                key={brand._id || brand.id} 
                 style={styles.brandCard}
                 onPress={() => navigation.navigate('Products', { initialBrand: brand.name })}
               >
-                <Text style={[styles.brandText, { color: brand.color }]}>{brand.name}</Text>
+                <Text style={[styles.brandText, { color: brand.color || '#ea580c' }]}>
+                  {brand.icon ? `${brand.icon} ` : ''}{brand.name}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>

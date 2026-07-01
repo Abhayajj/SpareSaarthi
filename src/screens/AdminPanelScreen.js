@@ -103,9 +103,18 @@ export default function AdminPanelScreen({ navigation }) {
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [offers, setOffers] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  // ── Category/Brand Manager States
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('');
+  const [newBrandName, setNewBrandName] = useState('');
+  const [newBrandIcon, setNewBrandIcon] = useState('');
+  const [savingCat, setSavingCat] = useState(false);
+  const [savingBrand, setSavingBrand] = useState(false);
 
   // ── Add Product Modal
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -375,16 +384,18 @@ export default function AdminPanelScreen({ navigation }) {
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [prodRes, catRes, ordRes, offRes] = await Promise.all([
+      const [prodRes, catRes, ordRes, offRes, brandRes] = await Promise.all([
         api.get('/products'),
         api.get('/products/categories'),
         api.get('/orders'),
         api.get('/offers/admin'),
+        api.get('/products/brands').catch(() => ({ data: [] })),
       ]);
       setProducts(prodRes.data);
       setCategories(catRes.data);
       setOrders(ordRes.data);
       setOffers(offRes.data);
+      setBrands(brandRes.data);
       if (!addCategoryId && catRes.data.length > 0) {
         setAddCategoryId(catRes.data[0]._id);
       }
@@ -395,6 +406,50 @@ export default function AdminPanelScreen({ navigation }) {
       setRefreshing(false);
     }
   }, [addCategoryId]);
+
+  const handleAddCategory = async () => {
+    if (!newCatName.trim() || !newCatIcon.trim()) {
+      Alert.alert('Required', 'Name and icon/emoji are required.');
+      return;
+    }
+    setSavingCat(true);
+    try {
+      await api.post('/products/categories', {
+        name: newCatName.trim(),
+        icon: newCatIcon.trim(),
+      });
+      Alert.alert('Success', `Category "${newCatName}" created successfully!`);
+      setNewCatName('');
+      setNewCatIcon('');
+      fetchData(true);
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Could not create category.');
+    } finally {
+      setSavingCat(false);
+    }
+  };
+
+  const handleAddBrand = async () => {
+    if (!newBrandName.trim()) {
+      Alert.alert('Required', 'Brand name is required.');
+      return;
+    }
+    setSavingBrand(true);
+    try {
+      await api.post('/products/brands', {
+        name: newBrandName.trim(),
+        icon: newBrandIcon.trim() || '🚗',
+      });
+      Alert.alert('Success', `Brand "${newBrandName}" created successfully!`);
+      setNewBrandName('');
+      setNewBrandIcon('');
+      fetchData(true);
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Could not create brand.');
+    } finally {
+      setSavingBrand(false);
+    }
+  };
 
   useEffect(() => { fetchData(); }, []);
 
@@ -677,6 +732,7 @@ export default function AdminPanelScreen({ navigation }) {
           { key: 'products', label: 'Products', icon: <Package size={16} /> },
           { key: 'orders',   label: 'Orders',   icon: <ShoppingBag size={16} /> },
           { key: 'offers',   label: 'Offers',   icon: <Tag size={16} /> },
+          { key: 'manage',   label: 'Manage',   icon: <Layers size={16} /> },
         ].map(t => (
           <TouchableOpacity
             key={t.key}
@@ -920,7 +976,7 @@ export default function AdminPanelScreen({ navigation }) {
           }}
         />
 
-      ) : (
+      ) : activeTab === 'offers' ? (
 
         /* ════════════ OFFERS TAB ════════════ */
         <View style={{ flex: 1 }}>
@@ -971,6 +1027,67 @@ export default function AdminPanelScreen({ navigation }) {
             )}
           />
         </View>
+      ) : (
+        /* ════════════ MANAGE TAB ════════════ */
+        <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+          {/* Add Category Section */}
+          <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 12 }}>➕ Add New Category</Text>
+            <Field label="Category Name" required>
+              <TextInput style={m.input} value={newCatName} onChangeText={setNewCatName} placeholder="e.g. Brake Pad" />
+            </Field>
+            <Field label="Category Icon (Emoji)" required>
+              <TextInput style={m.input} value={newCatIcon} onChangeText={setNewCatIcon} placeholder="e.g. 🛑" />
+            </Field>
+            <TouchableOpacity style={m.submitBtn} onPress={handleAddCategory} disabled={savingCat}>
+              {savingCat ? <ActivityIndicator color="#fff" /> : <Text style={m.submitBtnText}>Create Category</Text>}
+            </TouchableOpacity>
+          </View>
+
+          {/* Add Brand Section */}
+          <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 12 }}>➕ Add New Brand</Text>
+            <Field label="Brand Name" required>
+              <TextInput style={m.input} value={newBrandName} onChangeText={setNewBrandName} placeholder="e.g. Brembo" />
+            </Field>
+            <Field label="Brand Icon (Optional Emoji)" required={false}>
+              <TextInput style={m.input} value={newBrandIcon} onChangeText={setNewBrandIcon} placeholder="e.g. 🚗" />
+            </Field>
+            <TouchableOpacity style={m.submitBtn} onPress={handleAddBrand} disabled={savingBrand}>
+              {savingBrand ? <ActivityIndicator color="#fff" /> : <Text style={m.submitBtnText}>Create Brand</Text>}
+            </TouchableOpacity>
+          </View>
+
+          {/* Current Status Preview */}
+          <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 10 }}>📦 Active System Parameters</Text>
+            
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', marginBottom: 6, textTransform: 'uppercase' }}>Categories ({categories.length})</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {categories.map(c => (
+                <View key={c._id} style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#f1f5f9', borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text>{c.icon}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#334155' }}>{c.name}</Text>
+                </View>
+              ))}
+            </View>
+
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', marginBottom: 6, textTransform: 'uppercase' }}>Brands ({brands.length})</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {brands.map(b => (
+                <View key={b._id} style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fff7ed', borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#ffedd5' }}>
+                  <Text>{b.icon || '🚗'}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#ea580c' }}>{b.name}</Text>
+                </View>
+              ))}
+              {brands.length === 0 && BRAND_OPTIONS.map(bName => (
+                <View key={bName} style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#f1f5f9', borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b' }}>{bName}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
       )}
 
       {/* ══════════════════════════════════════════
@@ -993,7 +1110,7 @@ export default function AdminPanelScreen({ navigation }) {
 
                 <Field label="Brand" required>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-                    {BRAND_OPTIONS.map(b => (
+                    {(brands.length > 0 ? brands.map(b => b.name) : BRAND_OPTIONS).map(b => (
                       <TouchableOpacity
                         key={b}
                         style={[m.chip, addBrand === b && m.chipActive]}
@@ -1125,7 +1242,7 @@ export default function AdminPanelScreen({ navigation }) {
 
                 <Field label="Brand" required>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-                    {BRAND_OPTIONS.map(b => (
+                    {(brands.length > 0 ? brands.map(b => b.name) : BRAND_OPTIONS).map(b => (
                       <TouchableOpacity
                         key={b}
                         style={[m.chip, editBrand === b && m.chipActive]}

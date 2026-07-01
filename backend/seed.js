@@ -3,16 +3,27 @@ const dotenv = require('dotenv');
 const Product = require('./models/Product');
 const Category = require('./models/Category');
 const User = require('./models/User');
+const Brand = require('./models/Brand');
 const connectDB = require('./config/db');
 
 dotenv.config();
-connectDB();
 
 const importData = async () => {
   try {
     await Product.deleteMany();
     await Category.deleteMany();
+    await Brand.deleteMany();
     await User.deleteMany({ email: 'admin@sparesaarthi.com' });
+
+    await Brand.insertMany([
+      { name: 'Hero', icon: '🏍️' },
+      { name: 'Bajaj', icon: '🛵' },
+      { name: 'Honda', icon: '🏍️' },
+      { name: 'TVS', icon: '🛵' },
+      { name: 'Exide', icon: '🔋' },
+      { name: 'Motul', icon: '🛢️' },
+      { name: 'Castrol', icon: '🛢️' },
+    ]);
 
     await User.create({
       name: 'Admin Owner',
@@ -225,4 +236,9 @@ const importData = async () => {
   }
 };
 
-importData();
+const run = async () => {
+  await connectDB();
+  await importData();
+};
+
+run();

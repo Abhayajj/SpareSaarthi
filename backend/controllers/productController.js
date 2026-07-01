@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const Brand = require('../models/Brand');
 
 // @desc    Get all products (with optional filtering by category/brand)
 // @route   GET /api/products
@@ -379,6 +380,60 @@ const importInvoice = async (req, res) => {
   }
 };
 
+// @desc    Create a category (Admin only)
+// @route   POST /api/products/categories
+// @access  Private/Admin
+const createCategory = async (req, res) => {
+  try {
+    const { name, icon } = req.body;
+    if (!name || !icon) {
+      return res.status(400).json({ message: 'Name and icon are required.' });
+    }
+    const categoryExists = await Category.findOne({ name });
+    if (categoryExists) {
+      return res.status(400).json({ message: 'Category already exists.' });
+    }
+    const category = new Category({ name, icon });
+    const createdCategory = await category.save();
+    res.status(201).json(createdCategory);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get all brands
+// @route   GET /api/products/brands
+// @access  Public
+const getBrands = async (req, res) => {
+  try {
+    const brands = await Brand.find({});
+    res.json(brands);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Create a brand (Admin only)
+// @route   POST /api/products/brands
+// @access  Private/Admin
+const createBrand = async (req, res) => {
+  try {
+    const { name, icon } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: 'Name is required.' });
+    }
+    const brandExists = await Brand.findOne({ name });
+    if (brandExists) {
+      return res.status(400).json({ message: 'Brand already exists.' });
+    }
+    const brand = new Brand({ name, icon: icon || '🚗' });
+    const createdBrand = await brand.save();
+    res.status(201).json(createdBrand);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -389,4 +444,7 @@ module.exports = {
   deleteProduct,
   processInvoice,
   importInvoice,
+  createCategory,
+  getBrands,
+  createBrand,
 };
