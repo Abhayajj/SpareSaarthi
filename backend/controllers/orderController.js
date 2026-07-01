@@ -154,7 +154,7 @@ const createCheckoutSession = async (req, res) => {
       console.log('Stripe key is not set. Falling back to sandbox checkout...');
       return res.json({
         id: 'sandbox_session_id_' + createdOrder._id,
-        url: `${backendUrl}/OrderSuccess?session_id=sandbox_session_id_${createdOrder._id}&orderId=${createdOrder._id}`,
+        url: `${backendUrl}/sandbox-checkout?session_id=sandbox_session_id_${createdOrder._id}&orderId=${createdOrder._id}`,
         isSandbox: true,
         orderId: createdOrder._id,
       });
