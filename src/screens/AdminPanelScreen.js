@@ -933,37 +933,47 @@ export default function AdminPanelScreen({ navigation }) {
             return (
               <View style={s.orderCard}>
                 {/* Order Header - always visible */}
-                <TouchableOpacity
-                  style={s.orderHeader}
-                  onPress={() => setExpandedOrders(p => ({ ...p, [item._id]: !p[item._id] }))}
-                  activeOpacity={0.7}
-                >
+                <View style={[s.orderHeader, { paddingBottom: 6 }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.orderId}>#{item._id.substring(0, 8).toUpperCase()}</Text>
                     <Text style={s.orderDate}>{new Date(item.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
-                    <Text style={s.orderBusiness}>{item.user?.businessName || 'Unknown Business'}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
                     <View style={[s.statusBadge, { backgroundColor: sc2.bg }]}>
                       <Text style={[s.statusBadgeText, { color: sc2.text }]}>{item.status}</Text>
                     </View>
                     <Text style={s.orderTotal}>₹{item.totalAmount}</Text>
-                    {expanded
-                      ? <ChevronUp color="#94a3b8" size={18} />
-                      : <ChevronDown color="#94a3b8" size={18} />}
                   </View>
+                </View>
+
+                {/* Customer Details - ALWAYS VISIBLE */}
+                <View style={{ paddingHorizontal: 14, paddingBottom: 8 }}>
+                  <View style={s.buyerBox}>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#0f172a', marginBottom: 4 }}>
+                      🏢 {item.user?.businessName || 'Unknown Business'} ({item.user?.name || 'N/A'})
+                    </Text>
+                    <Text style={s.buyerDetail}>📍 Address: {item.user?.address || 'No address'}</Text>
+                    <Text style={s.buyerDetail}>📞 Phone: {item.user?.phone || 'No phone'}</Text>
+                    <Text style={s.buyerDetail}>✉️ Email: {item.user?.email || 'No email'}</Text>
+                  </View>
+                </View>
+
+                {/* Tappable section to toggle items & status updates */}
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                  onPress={() => setExpandedOrders(p => ({ ...p, [item._id]: !p[item._id] }))}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#ea580c' }}>
+                    {expanded ? 'Hide Products & Status Actions' : 'View Products & Update Status'}
+                  </Text>
+                  {expanded ? <ChevronUp color="#ea580c" size={16} /> : <ChevronDown color="#ea580c" size={16} />}
                 </TouchableOpacity>
 
                 {/* Expanded details */}
                 {expanded && (
                   <View style={s.orderExpanded}>
                     <View style={s.orderDivider} />
-                    <View style={s.buyerBox}>
-                      <Text style={s.buyerName}>{item.user?.name || 'N/A'}</Text>
-                      <Text style={s.buyerDetail}>📍 {item.user?.address || 'No address'}</Text>
-                      <Text style={s.buyerDetail}>✉️ {item.user?.email || 'No email'}</Text>
-                      <Text style={s.buyerDetail}>📞 {item.user?.phone || 'No phone'}</Text>
-                    </View>
                     {item.orderItems?.map((oi, idx) => (
                       <View key={idx} style={s.orderItemRow}>
                         <Text style={s.orderItemName} numberOfLines={1}>{oi.name}</Text>
