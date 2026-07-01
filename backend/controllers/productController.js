@@ -85,7 +85,7 @@ const getCategories = async (req, res) => {
 // @access  Private/Admin
 const updateProduct = async (req, res) => {
   try {
-    const { name, price, originalPrice, discount, stock, brand, isHotDeal, image } = req.body;
+  const { name, price, originalPrice, discount, stock, brand, isHotDeal, image, category } = req.body;
     const product = await Product.findById(req.params.id);
 
     if (product) {
@@ -97,9 +97,11 @@ const updateProduct = async (req, res) => {
       product.brand = brand || product.brand;
       product.isHotDeal = isHotDeal !== undefined ? isHotDeal : product.isHotDeal;
       if (image && image.trim() !== '') product.image = image.trim();
+      if (category) product.category = category;
 
       const updatedProduct = await product.save();
-      res.json(updatedProduct);
+      const populated = await updatedProduct.populate('category', 'name icon');
+      res.json(populated);
     } else {
       res.status(404).json({ message: 'Product not found' });
     }

@@ -153,6 +153,7 @@ export default function AdminPanelScreen({ navigation }) {
   const [editDiscount, setEditDiscount] = useState('');
   const [editImage, setEditImage] = useState('');
   const [editIsHotDeal, setEditIsHotDeal] = useState(false);
+  const [editCategoryId, setEditCategoryId] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
   // ── Bulk Stock Modal
@@ -596,6 +597,7 @@ export default function AdminPanelScreen({ navigation }) {
     setEditDiscount(product.discount || '');
     setEditImage(product.image || '');
     setEditIsHotDeal(product.isHotDeal || false);
+    setEditCategoryId(product.category?._id || product.category || '');
     setEditModalVisible(true);
   };
 
@@ -615,6 +617,7 @@ export default function AdminPanelScreen({ navigation }) {
         discount: editDiscount,
         image: editImage,
         isHotDeal: editIsHotDeal,
+        category: editCategoryId,
       });
       Alert.alert('✅ Updated', 'Product updated successfully.');
       setEditModalVisible(false);
@@ -1352,6 +1355,28 @@ export default function AdminPanelScreen({ navigation }) {
                     onChangeText={setEditBrand} 
                     placeholder="Or type a custom brand name..." 
                   />
+                </Field>
+
+                <Field 
+                  label="Category" 
+                  required
+                  rightElement={
+                    <TouchableOpacity onPress={() => setQuickAddCatVisible(true)}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#ea580c' }}>+ Add New</Text>
+                    </TouchableOpacity>
+                  }
+                >
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                    {categories.map(cat => (
+                      <TouchableOpacity
+                        key={cat._id}
+                        style={[m.chip, editCategoryId === cat._id && m.chipActive]}
+                        onPress={() => setEditCategoryId(cat._id)}
+                      >
+                        <Text style={[m.chipText, editCategoryId === cat._id && m.chipTextActive]}>{cat.icon} {cat.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                 </Field>
 
                 <Field label="Product Image">
