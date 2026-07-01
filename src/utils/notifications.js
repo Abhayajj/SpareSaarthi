@@ -32,10 +32,15 @@ export async function registerForPushNotificationsAsync() {
       console.log('Failed to get push token for push notification!');
       return null;
     }
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId: '7da23a12-f545-49c6-9c33-88f3ec303aa5'
-    })).data;
-    console.log('Expo Push Token:', token);
+    try {
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId: '7da23a12-f545-49c6-9c33-88f3ec303aa5'
+      })).data;
+      console.log('Expo Push Token:', token);
+    } catch (e) {
+      console.warn('Push Notifications not supported in Expo Go. Use EAS preview APK instead. Error:', e.message);
+      return null;
+    }
   } else {
     console.log('Must use physical device for Push Notifications');
   }
