@@ -147,12 +147,14 @@ const createCheckoutSession = async (req, res) => {
 
     const createdOrder = await order.save();
 
+    const backendUrl = `${req.protocol}://${req.get('host')}/api/orders`;
+
     // If STRIPE_SECRET_KEY is not configured or is a mock placeholder, simulate success directly (Fallback sandbox mode)
     if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.includes('mock')) {
       console.log('Stripe key is not set. Falling back to sandbox checkout...');
       return res.json({
         id: 'sandbox_session_id_' + createdOrder._id,
-        url: `https://sparesaarthi.netlify.app/OrderSuccess?session_id=sandbox_session_id_${createdOrder._id}&orderId=${createdOrder._id}`,
+        url: `${backendUrl}/OrderSuccess?session_id=sandbox_session_id_${createdOrder._id}&orderId=${createdOrder._id}`,
         isSandbox: true,
         orderId: createdOrder._id,
       });
@@ -172,8 +174,8 @@ const createCheckoutSession = async (req, res) => {
         quantity: item.qty,
       })),
       mode: 'payment',
-      success_url: `${req.headers.origin || 'https://sparesaarthi.netlify.app'}/OrderSuccess?session_id={CHECKOUT_SESSION_ID}&orderId=${createdOrder._id}`,
-      cancel_url: `${req.headers.origin || 'https://sparesaarthi.netlify.app'}/cart`,
+      success_url: `${backendUrl}/OrderSuccess?session_id={CHECKOUT_SESSION_ID}&orderId=${createdOrder._id}`,
+      cancel_url: `${backendUrl}/OrderCancel`,
       metadata: {
         orderId: createdOrder._id.toString(),
       },
