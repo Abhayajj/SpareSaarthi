@@ -55,10 +55,13 @@ const OFFER_COLORS = [
 // ──────────────────────────────────────────────
 // Reusable labelled input
 // ──────────────────────────────────────────────
-function Field({ label, required, children }) {
+function Field({ label, required, rightElement, children }) {
   return (
     <View style={f.group}>
-      <Text style={f.label}>{label}{required && <Text style={{ color: '#ef4444' }}> *</Text>}</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <Text style={[f.label, { marginBottom: 0 }]}>{label}{required && <Text style={{ color: '#ef4444' }}> *</Text>}</Text>
+        {rightElement}
+      </View>
       {children}
     </View>
   );
@@ -115,6 +118,16 @@ export default function AdminPanelScreen({ navigation }) {
   const [newBrandIcon, setNewBrandIcon] = useState('');
   const [savingCat, setSavingCat] = useState(false);
   const [savingBrand, setSavingBrand] = useState(false);
+
+  // ── Quick Add States (inside modals)
+  const [quickAddBrandVisible, setQuickAddBrandVisible] = useState(false);
+  const [quickAddCatVisible, setQuickAddCatVisible] = useState(false);
+  const [quickBrandName, setQuickBrandName] = useState('');
+  const [quickBrandIcon, setQuickBrandIcon] = useState('');
+  const [quickCatName, setQuickCatName] = useState('');
+  const [quickCatIcon, setQuickCatIcon] = useState('');
+  const [savingQuickBrand, setSavingQuickBrand] = useState(false);
+  const [savingQuickCat, setSavingQuickCat] = useState(false);
 
   // ── Add Product Modal
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -448,6 +461,62 @@ export default function AdminPanelScreen({ navigation }) {
       Alert.alert('Error', err.response?.data?.message || 'Could not create brand.');
     } finally {
       setSavingBrand(false);
+    }
+  };
+
+  const handleQuickAddBrand = async () => {
+    if (!quickBrandName.trim()) {
+      Alert.alert('Required', 'Brand name is required.');
+      return;
+    }
+    setSavingQuickBrand(true);
+    try {
+      const res = await api.post('/products/brands', {
+        name: quickBrandName.trim(),
+        icon: quickBrandIcon.trim() || '🚗',
+      });
+      Alert.alert('Success', `Brand "${quickBrandName}" created!`);
+      setBrands(prev => [...prev, res.data]);
+      if (addModalVisible) {
+        setAddBrand(quickBrandName.trim());
+      } else if (editModalVisible) {
+        setEditBrand(quickBrandName.trim());
+      }
+      setQuickBrandName('');
+      setQuickBrandIcon('');
+      setQuickAddBrandVisible(false);
+      fetchData(true);
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Could not create brand.');
+    } finally {
+      setSavingQuickBrand(false);
+    }
+  };
+
+  const handleQuickAddCategory = async () => {
+    if (!quickCatName.trim() || !quickCatIcon.trim()) {
+      Alert.alert('Required', 'Name and icon/emoji are required.');
+      return;
+    }
+    setSavingQuickCat(true);
+    try {
+      const res = await api.post('/products/categories', {
+        name: quickCatName.trim(),
+        icon: quickCatIcon.trim(),
+      });
+      Alert.alert('Success', `Category "${quickCatName}" created!`);
+      setCategories(prev => [...prev, res.data]);
+      if (addModalVisible) {
+        setAddCategoryId(res.data._id);
+      }
+      setQuickCatName('');
+      setQuickCatIcon('');
+      setQuickAddCatVisible(false);
+      fetchData(true);
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Could not create category.');
+    } finally {
+      setSavingQuickCat(false);
     }
   };
 
@@ -1108,7 +1177,15 @@ export default function AdminPanelScreen({ navigation }) {
                   <TextInput style={m.input} value={addName} onChangeText={setAddName} placeholder="e.g. Honda Activa Brake Shoe" />
                 </Field>
 
-                <Field label="Brand" required>
+                <Field 
+                  label="Brand" 
+                  required
+                  rightElement={
+                    <TouchableOpacity onPress={() => setQuickAddBrandVisible(true)}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#ea580c' }}>+ Add New</Text>
+                    </TouchableOpacity>
+                  }
+                >
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
                     {(brands.length > 0 ? brands.map(b => b.name) : BRAND_OPTIONS).map(b => (
                       <TouchableOpacity
@@ -1128,7 +1205,15 @@ export default function AdminPanelScreen({ navigation }) {
                   />
                 </Field>
 
-                <Field label="Category" required>
+                <Field 
+                  label="Category" 
+                  required
+                  rightElement={
+                    <TouchableOpacity onPress={() => setQuickAddCatVisible(true)}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#ea580c' }}>+ Add New</Text>
+                    </TouchableOpacity>
+                  }
+                >
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
                     {categories.map(cat => (
                       <TouchableOpacity
@@ -1240,7 +1325,15 @@ export default function AdminPanelScreen({ navigation }) {
                   <TextInput style={m.input} value={editName} onChangeText={setEditName} />
                 </Field>
 
-                <Field label="Brand" required>
+                <Field 
+                  label="Brand" 
+                  required
+                  rightElement={
+                    <TouchableOpacity onPress={() => setQuickAddBrandVisible(true)}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#ea580c' }}>+ Add New</Text>
+                    </TouchableOpacity>
+                  }
+                >
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
                     {(brands.length > 0 ? brands.map(b => b.name) : BRAND_OPTIONS).map(b => (
                       <TouchableOpacity
@@ -1758,6 +1851,52 @@ export default function AdminPanelScreen({ navigation }) {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ══════════════════════════════════════════
+          MODAL: QUICK ADD BRAND
+      ══════════════════════════════════════════ */}
+      <Modal visible={quickAddBrandVisible} animationType="fade" transparent onRequestClose={() => setQuickAddBrandVisible(false)}>
+        <View style={[m.overlay, { justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 20 }]}>
+          <View style={[m.sheet, { borderRadius: 16, maxHeight: '80%', paddingHorizontal: 20, paddingBottom: 24 }]}>
+            <View style={m.sheetHeader}>
+              <Text style={m.sheetTitle}>➕ Quick Add Brand</Text>
+              <TouchableOpacity onPress={() => setQuickAddBrandVisible(false)}><X color="#64748b" size={22} /></TouchableOpacity>
+            </View>
+            <Field label="Brand Name" required>
+              <TextInput style={m.input} value={quickBrandName} onChangeText={setQuickBrandName} placeholder="e.g. Brembo" autoFocus />
+            </Field>
+            <Field label="Brand Icon (Optional Emoji)">
+              <TextInput style={m.input} value={quickBrandIcon} onChangeText={setQuickBrandIcon} placeholder="e.g. 🚗" />
+            </Field>
+            <TouchableOpacity style={m.submitBtn} onPress={handleQuickAddBrand} disabled={savingQuickBrand}>
+              {savingQuickBrand ? <ActivityIndicator color="#fff" /> : <Text style={m.submitBtnText}>Add and Select Brand</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ══════════════════════════════════════════
+          MODAL: QUICK ADD CATEGORY
+      ══════════════════════════════════════════ */}
+      <Modal visible={quickAddCatVisible} animationType="fade" transparent onRequestClose={() => setQuickAddCatVisible(false)}>
+        <View style={[m.overlay, { justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 20 }]}>
+          <View style={[m.sheet, { borderRadius: 16, maxHeight: '80%', paddingHorizontal: 20, paddingBottom: 24 }]}>
+            <View style={m.sheetHeader}>
+              <Text style={m.sheetTitle}>➕ Quick Add Category</Text>
+              <TouchableOpacity onPress={() => setQuickAddCatVisible(false)}><X color="#64748b" size={22} /></TouchableOpacity>
+            </View>
+            <Field label="Category Name" required>
+              <TextInput style={m.input} value={quickCatName} onChangeText={setQuickCatName} placeholder="e.g. Brake Pad" autoFocus />
+            </Field>
+            <Field label="Category Icon (Emoji)" required>
+              <TextInput style={m.input} value={quickCatIcon} onChangeText={setQuickCatIcon} placeholder="e.g. 🛑" />
+            </Field>
+            <TouchableOpacity style={m.submitBtn} onPress={handleQuickAddCategory} disabled={savingQuickCat}>
+              {savingQuickCat ? <ActivityIndicator color="#fff" /> : <Text style={m.submitBtnText}>Add and Select Category</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
