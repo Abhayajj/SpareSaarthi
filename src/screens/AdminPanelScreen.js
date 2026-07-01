@@ -959,6 +959,7 @@ export default function AdminPanelScreen({ navigation }) {
                       <Text style={s.buyerName}>{item.user?.name || 'N/A'}</Text>
                       <Text style={s.buyerDetail}>📍 {item.user?.address || 'No address'}</Text>
                       <Text style={s.buyerDetail}>✉️ {item.user?.email || 'No email'}</Text>
+                      <Text style={s.buyerDetail}>📞 {item.user?.phone || 'No phone'}</Text>
                     </View>
                     {item.orderItems?.map((oi, idx) => (
                       <View key={idx} style={s.orderItemRow}>

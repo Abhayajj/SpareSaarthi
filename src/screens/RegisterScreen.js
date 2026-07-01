@@ -4,7 +4,7 @@ import {
   ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Eye, EyeOff, Zap, ArrowLeft, User, Building2, MapPin, Mail, Lock } from 'lucide-react-native';
+import { Eye, EyeOff, Zap, ArrowLeft, User, Building2, MapPin, Mail, Lock, Phone } from 'lucide-react-native';
 import { AuthContext } from '../context/AuthContext';
 
 function InputRow({ icon: Icon, label, children }) {
@@ -22,6 +22,7 @@ function InputRow({ icon: Icon, label, children }) {
 export default function RegisterScreen({ navigation }) {
   const { register } = useContext(AuthContext);
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
@@ -31,7 +32,7 @@ export default function RegisterScreen({ navigation }) {
   const [error, setError] = useState(null);
 
   const handleRegister = async () => {
-    if (!name.trim() || !businessName.trim() || !address.trim() || !email.trim() || !password) {
+    if (!name.trim() || !phone.trim() || !businessName.trim() || !address.trim() || !email.trim() || !password) {
       setError('Please fill in all fields to continue.');
       return;
     }
@@ -42,7 +43,7 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     setError(null);
     try {
-      await register(name.trim(), email.trim().toLowerCase(), password, businessName.trim(), address.trim());
+      await register(name.trim(), email.trim().toLowerCase(), password, businessName.trim(), address.trim(), phone.trim());
     } catch (e) {
       setError(e.message || 'Registration failed. Please try again.');
     } finally {
@@ -95,6 +96,17 @@ export default function RegisterScreen({ navigation }) {
                 onChangeText={setName}
                 placeholder="Ramesh Kumar"
                 placeholderTextColor="#475569"
+              />
+            </InputRow>
+
+            <InputRow icon={Phone} label="MOBILE / PHONE NUMBER">
+              <TextInput
+                style={s.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="e.g. 9876543210"
+                placeholderTextColor="#475569"
+                keyboardType="phone-pad"
               />
             </InputRow>
 

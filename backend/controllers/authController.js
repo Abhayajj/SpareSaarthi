@@ -6,7 +6,7 @@ const generateToken = require('../utils/generateToken');
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, businessName, address } = req.body;
+    const { name, email, password, businessName, address, phone } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -20,6 +20,7 @@ const registerUser = async (req, res) => {
       password,
       businessName,
       address,
+      phone,
       coins: 100 // Welcome bonus
     });
 
@@ -31,6 +32,7 @@ const registerUser = async (req, res) => {
         businessName: user.businessName,
         coins: user.coins,
         role: user.role,
+        phone: user.phone,
         token: generateToken(user._id),
       });
     } else {
@@ -58,6 +60,7 @@ const loginUser = async (req, res) => {
         businessName: user.businessName,
         coins: user.coins,
         role: user.role,
+        phone: user.phone,
         token: generateToken(user._id),
       });
     } else {
@@ -82,6 +85,7 @@ const getUserProfile = async (req, res) => {
         email: user.email,
         businessName: user.businessName,
         address: user.address,
+        phone: user.phone,
         coins: user.coins,
         role: user.role,
       });
@@ -109,6 +113,7 @@ const updatePushToken = async (req, res) => {
       res.status(404).json({ message: 'User not found' });
     }
   } catch (error) {
+    console.error('Error in updatePushToken:', error);
     res.status(500).json({ message: error.message });
   }
 };
